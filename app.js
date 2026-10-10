@@ -1,49 +1,53 @@
-import {MongoClient, ObjectId} from 'mongodb';
+const express = require('express');
+const app = express();
+const PORT = 3000
 const mongoose= require('mongoose');
-// Replace with your local URI (mongodb://localhost:27017) or your MongoDB Atlas cloud URI
-const uri = "mongodb://127.0.0.1:27017";
-const client = new MongoClient(uri);
 
-//Creating Schemas
 
-const UserModel = new mongoose.Schema({
-    _id: {type: ObjectId, required:true},
-    username: {type: String, unique:true},
-    password: {type: String}, //TODO password validation & hashing]==
-    created_at: {type:Date},
-    updated_at: {type:Date}
-});
+//middleware
+app.use(express.json());
 
-const EmployeeModel = new mongoose.Schema({
-    _id: {type: ObjectId, required:true},
-    first_name: {type:String},
-    last_name: {type:String},
-    email: {type:String},
-    position: {type:String},
-    salary: {type:Number},
-    date_of_joining: {type:Date},
-    department: {type:String},
-    user: {type:ObjectId},
-    created_at: {type:Date},
-    updated_at: {type:Date}
+//GET Template
+app.get("/api/status",(req, res) =>{
+    res.json({
+        val1: "safa"
+    })
 })
 
-//Connecting to server
-async function run() {
-    try {
-        // Connect to the server
-        await client.connect();
-        console.log("Connected successfully to MongoDB");
-        // Specify the database and collection names
-        const database = client.db('my_store');
-        const products = database.collection('products');
-        // Executing database operations goes here...
-    } catch (error) {
-        console.error("An error occurred:", error);
+//USER API
+const usrPath ="/api/v1/user"
+
+app.post(`${usrPath}/signup`, (req, res)=>{
+    const {user, pass, email} = req.body
+
+    //do some validation
+    if(!user){
+        return res.status(400).json({error:"user not given"})
     }
-    finally {
-        // Ensures that the client will close when you finish/error
-        await client.close();
+
+    //Create user
+    const newID = new mongoose.Types.ObjectId();
+    const newUser = {
+        _id: newID,
+        username: user,
+        password: pass,
+        email: email,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
     }
-}
-run().catch(console.dir);
+
+    users.push(newUser);//TODO replace this with actual database
+
+    res.status(201).json({
+        message: "New User Created",
+        user: newUser
+    })
+})
+
+//Employee API
+const employeePath ="/api/v1/emp"
+
+//start server
+app.listen(PORT, ()=>{
+    console.log(`server running on https//localhost:${PORT}`);
+});
