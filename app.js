@@ -7,6 +7,20 @@ const mongoose= require('mongoose');
 //middleware
 app.use(express.json());
 
+//connecting to db
+mongoose.connect('mongodb://127.0.0.1:27017/myDatabase')
+    .then(() => {
+        console.log('Connected to MongoDB');
+
+        // Start server only after connection succeeds
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+        });
+    })
+    .catch(err => {
+        console.error('MongoDB connection error:', err);
+    });
+
 //GET Template
 app.get("/api/status",(req, res) =>{
     res.json({
