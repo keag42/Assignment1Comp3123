@@ -1,17 +1,20 @@
 const mongoose= require('mongoose');
-
+const Joi = require('joi')
 
 const UserSchema = new mongoose.Schema({
     _id: {
         type: mongoose.Schema.Types.ObjectId,
         required: true
-    },
+    }, //TODO apperantly moongose makes this automatically so check that out
     username: {type: String, unique:true},
-    password: {type: String, minLength:8}, //TODO password validation & hashing]==
+    email: {type:String, unique:true},
+    password: {type: String},
     created_at: {type:Date},
     updated_at: {type:Date}
 });
-
+//JOI is for validation not in the Schema
+//email: Joi.string().email(),
+//     password: Joi.string().alphanum().min(7).max(20).required(),
 const EmployeeSchema = new mongoose.Schema({
     _id: {
         type: mongoose.Schema.Types.ObjectId,

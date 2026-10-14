@@ -1,14 +1,21 @@
 const express = require('express');
-const app = express();
-const PORT = 3000
 const mongoose= require('mongoose');
-
+const jwt = require('jsonwebtoken');
+require('dotenv').config(); // Loads the variables
+const { User, Employee } = require('./models'); //this adds the models
+const bcrypt = require('bcrypt');
+const app = express();
+const PORT = process.env.PORT
+const jwtSecret =process.env.JWT_SECRET;
 
 //middleware
 app.use(express.json());
 
+
+
+console.log("starting mongoose.connect")
 //connecting to db
-mongoose.connect('mongodb://127.0.0.1:27017/myDatabase')
+mongoose.connect(process.env.DATABASE_URL)
     .then(() => {
         console.log('Connected to MongoDB');
 
@@ -31,37 +38,96 @@ app.get("/api/status",(req, res) =>{
 //USER API
 const usrPath ="/api/v1/user"
 
-app.post(`${usrPath}/signup`, (req, res)=>{
-    const {user, pass, email} = req.body
+app.post(`${usrPath}/signup`, async (req, res)=>{
+    const {username, password, email} = req.body
+    console.log(`${usrPath}/signup Called`)
+    //VALIDATION -----
+        //check if all data is provided
+    if(!username)  return res.status(400).json({error:"Username not given"})
+    if(!password)  return res.status(400).json({error:"Password not given"})
+    if(!email)  return res.status(400).json({error:"Email not given"})
 
-    //do some validation
-    if(!user){
-        return res.status(400).json({error:"user not given"})
+        //Make sure password satisfies basic requirements
+    if(password.length < 8) return res.status(400).json({error:"Password must be atleast 8 charactors"})
+    const passwordHasLettersAndNumbers = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{2,}$/;
+    if(!passwordHasLettersAndNumbers.test(password))return res.status(400).json({error:"Password have letters and numbers"})
+
+
+    try{
+        const hashedPassword = await bcrypt.hash(password, 10);
+        //Create user
+        const newID = new mongoose.Types.ObjectId();
+        const newUser = await User.create({
+            _id: newID,
+            username: username,
+            password: hashedPassword,
+            email: email,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        })
+
+        console.log(`new user created:  '${newUser._id}'`)
+        res.status(201).json({
+            message: "New User Created",
+            user: newUser
+        })
     }
-
-    //Create user
-    const newID = new mongoose.Types.ObjectId();
-    const newUser = {
-        _id: newID,
-        username: user,
-        password: pass,
-        email: email,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
+    catch(err){
+        console.log("Error creating user")
+        console.log(err)
     }
-
-    users.push(newUser);//TODO replace this with actual database
-
-    res.status(201).json({
-        message: "New User Created",
-        user: newUser
-    })
 })
+app.post(`${usrPath}/login`, async (req, res)=> {
+    console.log(`${usrPath}/login Called`)
+    const {username, password, email} = req.body
+    if(!password)  return res.status(400).json({error:"Password not given"})
+    if(!email && !username)  return res.status(400).json({error:"Email and Password were not given, you must provide one"})
+
+    if(!email) {
+        const foundUser = await User.findOne({username: username});
+        if (!foundUser) {
+            return res.status(400).json({error: "User Not Found"})
+        }
+        return res.status(200).json({userID: foundUser._id}) //TODO return JWT token
+    }
+    if(!username) {
+        const foundUser = await User.findOne({email: email});
+        if (!foundUser) {
+            return res.status(400).json({error: "User Not Found"})
+        }
+        return res.status(200).json({userID: foundUser._id}) //TODO return JWT token
+    }
+
+})
+
+//TODO REMOVE this is temporary for testing
+app.get(`${usrPath}/getUsers`, async (req, res)=> {
+    try {
+        // Find all documents in the User collection
+        const users = await User.find({});
+
+        // Optional: Map through the users to strip out passwords so you don't expose hashes
+        const sanitizedUsers = users.map(user => ({
+            _id: user._id,
+            username: user.username,
+            email: user.email,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt
+        }));
+
+        return res.status(200).json({
+            count: sanitizedUsers.length,
+            users: sanitizedUsers
+        });
+
+    } catch (err) {
+        console.error("Error fetching users:", err);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+
+})
+
 
 //Employee API
 const employeePath ="/api/v1/emp"
 
-//start server
-app.listen(PORT, ()=>{
-    console.log(`server running on https//localhost:${PORT}`);
-});
