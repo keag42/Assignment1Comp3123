@@ -83,21 +83,18 @@ app.post(`${usrPath}/login`, async (req, res)=> {
     if(!password)  return res.status(400).json({error:"Password not given"})
     if(!email && !username)  return res.status(400).json({error:"Email and Password were not given, you must provide one"})
 
-
-
-    let foundUser;
-    if(!email) {
-        foundUser = await User.findOne({username: username});
-        if (!foundUser) {
-            return res.status(400).json({error: "User Not Found"})
-        }
+    const query = username ? { username } : { email };
+    const foundUser = await User.findOne(query);
+    if (!foundUser) {
+        return res.status(400).json({error: "User Not Found"});
     }
-    else if(!username) {
-        foundUser = await User.findOne({email: email});
-        if (!foundUser) {
-            return res.status(400).json({error: "User Not Found"})
-        }
+
+    //check password
+    const passCorrect = await bcrypt.compare(password, foundUser.password);
+    if(!passCorrect){
+        return res.status(400).json({error: "Invalid credentials"});
     }
+
     const payload = {
         userId: foundUser._id,
         username: foundUser.username,
@@ -121,19 +118,8 @@ app.get(`${usrPath}/getUsers`, async (req, res)=> {
         // Find all documents in the User collection
         const users = await User.find({});
 
-        // Optional: Map through the users to strip out passwords so you don't expose hashes
-        const sanitizedUsers = users.map(user => ({
-            _id: user._id,
-            username: user.username,
-            email: user.email,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt
-        }));
 
-        return res.status(200).json({
-            count: sanitizedUsers.length,
-            users: sanitizedUsers
-        });
+        return res.status(200).json({users});
 
     } catch (err) {
         console.error("Error fetching users:", err);
