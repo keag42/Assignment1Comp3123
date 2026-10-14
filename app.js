@@ -152,15 +152,49 @@ const verifyToken = (req, res, next) => {
 const employeePath ="/api/v1/emp"
 
 app.get(`${employeePath}/employees`,verifyToken, async (req, res)=>{
-   console.log(`${employeePath}/employees Called`)
+   console.log(`${employeePath}/employees GET Called`)
 
-
-    //look for employees where user = user._id
-        //return response
     const emps = await Employee.find({user: req.user.userId})
     if(!emps){
         return res.status(400).json({ error: "No Employees" });
     }
     return res.status(200).json({ emps });
+})
 
+app.post(`${employeePath}/employees`,verifyToken, async (req, res)=>{
+    console.log(`${employeePath}/employees POST Called`)
+
+    const {first_name, last_name, email, position, salary, date_of_joining, department} = req.body
+
+    if(!first_name)  return res.status(400).json({error:"First name not given"})
+    if(!last_name)  return res.status(400).json({error:"Last name not given"})
+    if(!email)  return res.status(400).json({error:"Email not given"})
+    if(!position)  return res.status(400).json({error:"Position not given"})
+    if(!salary)  return res.status(400).json({error:"Salary not given"})
+    if(!date_of_joining)  return res.status(400).json({error:"Date of joining not given"})
+    if(!department)  return res.status(400).json({error:"Department of joining not given"})
+
+    const ownerId = req.user?._id || req.userId;
+
+    if (!ownerId) {
+        return res.status(401).json({ error: "Unauthorized: User information missing" });
+    }
+
+    const newID = new mongoose.Types.ObjectId();
+    const newEmployee = await Employee.create({
+        _id: ObjectId,
+        first_name: first_name,
+        last_name: last_name,
+        email: email,
+        position: position,
+        salary: salary,
+        date_of_joining: date_of_joining,
+        department: department,
+        user: ownerId, //Refer to User
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+    })
+
+
+    return res.status(201).json({ emps });
 })
