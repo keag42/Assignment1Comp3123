@@ -129,6 +129,38 @@ app.get(`${usrPath}/getUsers`, async (req, res)=> {
 })
 
 
+//verifying token
+const verifyToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Extract token from "Bearer <token>"
+
+    if (!token) {
+        return res.status(401).json({ error: "Not signed in / No token provided" });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded; // Attaches { userId, username, ... } to the request
+        next(); // User is verified, proceed to the route handler
+    } catch (err) {
+        return res.status(403).json({ error: "Invalid or expired token" });
+    }
+};
+
+
 //Employee API
 const employeePath ="/api/v1/emp"
 
+app.get(`${employeePath}/employees`,verifyToken, async (req, res)=>{
+   console.log(`${employeePath}/employees Called`)
+
+
+    //look for employees where user = user._id
+        //return response
+    const emps = await Employee.find({user: req.user.userId})
+    if(!emps){
+        return res.status(400).json({ error: "No Employees" });
+    }
+    return res.status(200).json({ emps });
+
+})
