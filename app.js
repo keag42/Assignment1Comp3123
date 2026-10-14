@@ -83,20 +83,35 @@ app.post(`${usrPath}/login`, async (req, res)=> {
     if(!password)  return res.status(400).json({error:"Password not given"})
     if(!email && !username)  return res.status(400).json({error:"Email and Password were not given, you must provide one"})
 
+
+
+    let foundUser;
     if(!email) {
-        const foundUser = await User.findOne({username: username});
+        foundUser = await User.findOne({username: username});
         if (!foundUser) {
             return res.status(400).json({error: "User Not Found"})
         }
-        return res.status(200).json({userID: foundUser._id}) //TODO return JWT token
     }
-    if(!username) {
-        const foundUser = await User.findOne({email: email});
+    else if(!username) {
+        foundUser = await User.findOne({email: email});
         if (!foundUser) {
             return res.status(400).json({error: "User Not Found"})
         }
-        return res.status(200).json({userID: foundUser._id}) //TODO return JWT token
     }
+    const payload = {
+        userId: foundUser._id,
+        username: foundUser.username,
+        email: foundUser.email
+    }
+    const token = jwt.sign(
+        payload,
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' } // Token expires in 1 hour
+    );
+    return res.status(200).json({
+        message: "Login successful",
+        token: token
+    });
 
 })
 
