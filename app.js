@@ -3,13 +3,22 @@ const mongoose= require('mongoose');
 const jwt = require('jsonwebtoken');
 require('dotenv').config(); // Loads the variables
 const helmet = require('helmet');
+
+// Data Schemas
 const { User, Employee } = require('./models'); //this adds the models
+
+//USER - Login stuff
+const {loginValidation} = require('./Validation.js')
+const { login, signup } = require('./controllers/UserController.js');
+
+//Logger
+const {writeLog} = require('./util/logger.js')
+
 const bcrypt = require('bcrypt');
 const app = express();
 const PORT = process.env.PORT
 const jwtSecret =process.env.JWT_SECRET;
-const fs = require('fs');
-const path = require('path');
+
 //middleware
 app.use(express.json());
 app.use(helmet())
@@ -34,81 +43,8 @@ mongoose.connect(process.env.DATABASE_URL)
 
 //USER API
 const usrPath ="/api/v1/user"
-
-app.post(`${usrPath}/signup`, async (req, res)=>{
-    const {username, password, email} = req.body
-    writeLog("info", `${usrPath}/signup Called`)
-    //VALIDATION -----
-        //check if all data is provided
-    if(!username)  return res.status(400).json({error:"Username not given"})
-    if(!password)  return res.status(400).json({error:"Password not given"})
-    if(!email)  return res.status(400).json({error:"Email not given"})
-
-        //Make sure password satisfies basic requirements
-    if(password.length < 8) return res.status(400).json({error:"Password must be atleast 8 charactors"})
-    const passwordHasLettersAndNumbers = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{2,}$/;
-    if(!passwordHasLettersAndNumbers.test(password))return res.status(400).json({error:"Password have letters and numbers"})
-
-
-    try{
-        const hashedPassword = await bcrypt.hash(password, 10);
-        //Create user
-        const newID = new mongoose.Types.ObjectId();
-        const newUser = await User.create({
-            _id: newID,
-            username: username,
-            password: hashedPassword,
-            email: email,
-            created_at: Date.now(),
-            updated_at: Date.now()
-        })
-
-        writeLog("Success",`new user created:  '${newUser._id}'` )
-        res.status(201).json({
-            message: "New User Created",
-            user: newUser
-        })
-    }
-    catch(err){
-        writeLog("Error", `error creating user ${err}`)
-        res.status(500).json({error: "Internal Server Error"})
-    }
-})
-app.post(`${usrPath}/login`, async (req, res)=> {
-    writeLog("info", `${usrPath}/login Called`)
-    const {username, password, email} = req.body
-    if(!password)  return res.status(400).json({error:"Password not given"})
-    if(!email && !username)  return res.status(400).json({error:"Email and Password were not given, you must provide one"})
-
-    const query = username ? { username } : { email };
-    const foundUser = await User.findOne(query);
-    if (!foundUser) {
-        return res.status(400).json({error: "User Not Found"});
-    }
-
-    //check password
-    const passCorrect = await bcrypt.compare(password, foundUser.password);
-    if(!passCorrect){
-        return res.status(400).json({error: "Invalid credentials"});
-    }
-
-    const payload = {
-        userId: foundUser._id,
-        username: foundUser.username,
-        email: foundUser.email
-    }
-    const token = jwt.sign(
-        payload,
-        process.env.JWT_SECRET,
-        { expiresIn: '1h' } // Token expires in 1 hour
-    );
-    writeLog("info", `Login Success`)
-    return res.status(200).json({
-        message: "Login successful",
-        token: token
-    });
-
-})
+app.post(`${usrPath}/signup`, signup)
+app.post(`${usrPath}/login`, loginValidation, login);
 
 //TODO REMOVE this is temporary for testing
 app.get(`${usrPath}/getUsers`, async (req, res)=> {
@@ -292,29 +228,3 @@ app.get("/health", (req, res) => {
         uptime: process.uptime()
     });
 });
-
-// Ensure the 'logs' directory exists
-const logDirectory = path.join(__dirname, 'logs');
-if (!fs.existsSync(logDirectory)) {
-    fs.mkdirSync(logDirectory);
-}
-
-const logFilePath = path.join(logDirectory, 'app.log');
-
-// Helper function to write logs
-const writeLog = (level, message, req = null) => {
-    const timestamp = new Date().toISOString();
-    let logEntry = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
-
-    if (req) {
-        logEntry += ` | Method: ${req.method} | Path: ${req.originalUrl} | IP: ${req.ip}`;
-    }
-
-    logEntry += '\n';
-
-    fs.appendFile(logFilePath, logEntry, (err) => {
-        if (err) console.error("Failed to write to log file:", err);
-    });
-
-    console.log(logEntry.trim());
-};
