@@ -14,6 +14,26 @@ const getEmployees = async (req, res)=>{
 };
 
 
+const getEmployeeById = async (req, res) => {
+    writeLog("info", "/api/v1/emp/employees/:eid GET Called");
+
+    try {
+        const employee = await Employee.findOne({
+            _id: req.params.eid,
+            user: req.user.userId
+        });
+
+        if (!employee) {
+            return res.status(404).json({ error: "Employee not found" });
+        }
+
+        return res.status(200).json({ employee });
+    } catch (err) {
+        writeLog("error", `Error fetching employee: ${err}`);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
 const createEmployee = async (req, res) => {
     writeLog("info", "/api/v1/emp/employees POST Called");
 
@@ -148,4 +168,4 @@ const deleteEmployee = async (req, res) => {
 
 
 
-module.exports = {getEmployees, createEmployee, updateEmployee, deleteEmployee}
+module.exports = {getEmployees, getEmployeeById, createEmployee, updateEmployee, deleteEmployee}

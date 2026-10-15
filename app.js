@@ -14,7 +14,7 @@ const {loginValidation, signUpValidation, employeeValidation, employeeIdValidati
 const { login, signup } = require('./controllers/UserController.js');
 
 //EMPLOYEE - employee CRUD
-const {getEmployees} = require('./controllers/employeeController.js');
+const {getEmployees, getEmployeeById} = require('./controllers/employeeController.js');
 const {createEmployee} = require("./controllers/employeeController");
 const {updateEmployee} = require("./controllers/employeeController");
 const {deleteEmployee} = require("./controllers/employeeController");
@@ -78,8 +78,9 @@ const verifyToken = (req, res, next) => {
 //Employee API
 const employeePath ="/api/v1/emp"
 app.get(`${employeePath}/employees`,verifyToken, getEmployees)
+app.get(`${employeePath}/employees/:eid`, verifyToken, employeeIdValidation, getEmployeeById)
 app.post(`${employeePath}/employees`,verifyToken, employeeValidation, createEmployee)
-app.put(`${employeePath}/employees/:eid`, verifyToken,employeeIdValidation, updateEmployee)
+app.put(`${employeePath}/employees/:eid`, verifyToken, employeeIdValidation, employeeValidation, updateEmployee)
 app.delete(`${employeePath}/employees`,  verifyToken,employeeIdValidation, deleteEmployee)
 
 app.get("/health", (req, res) => {
