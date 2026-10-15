@@ -163,7 +163,6 @@ app.get(`${employeePath}/employees`,verifyToken, async (req, res)=>{
 
 app.post(`${employeePath}/employees`,verifyToken, async (req, res)=>{
     console.log(`${employeePath}/employees POST Called`)
-
     const {first_name, last_name, email, position, salary, date_of_joining, department} = req.body
 
     if(!first_name)  return res.status(400).json({error:"First name not given"})
@@ -174,15 +173,16 @@ app.post(`${employeePath}/employees`,verifyToken, async (req, res)=>{
     if(!date_of_joining)  return res.status(400).json({error:"Date of joining not given"})
     if(!department)  return res.status(400).json({error:"Department of joining not given"})
 
-    const ownerId = req.user?._id || req.userId;
-
+    const ownerId = new mongoose.Types.ObjectId(req.user?.userId);
+    console.log(`ID: ${ownerId}`)
+    //TODO add check if employee already exists
     if (!ownerId) {
         return res.status(401).json({ error: "Unauthorized: User information missing" });
     }
 
     const newID = new mongoose.Types.ObjectId();
     const newEmployee = await Employee.create({
-        _id: ObjectId,
+        _id: newID,
         first_name: first_name,
         last_name: last_name,
         email: email,
@@ -195,6 +195,25 @@ app.post(`${employeePath}/employees`,verifyToken, async (req, res)=>{
         updatedAt: Date.now()
     })
 
-
     return res.status(201).json({ emps });
+})
+
+app.get(`${employeePath}/employees/:eid`, verifyToken, async (req, res) => {
+    console.log(`${employeePath}/employees POST Called`)
+    const {eid} = req.params
+
+    if (!eid) {
+        return res.status(401).json({ error: "Unauthorized: Employee ID missing" });
+    }
+
+    const empId = new mongoose.Types.ObjectId(eid);
+
+    const employee = await Employee.findOne({
+        _id: empId,
+        user: req.user.userId
+    })
+    console.log(`ID: ${eid}`)
+
+
+    return res.status(201).json(employee);
 })
