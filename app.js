@@ -2,14 +2,18 @@ const express = require('express');
 const mongoose= require('mongoose');
 const jwt = require('jsonwebtoken');
 require('dotenv').config(); // Loads the variables
+const helmet = require('helmet');
 const { User, Employee } = require('./models'); //this adds the models
 const bcrypt = require('bcrypt');
 const app = express();
 const PORT = process.env.PORT
 const jwtSecret =process.env.JWT_SECRET;
-
+const fs = require('fs');
+const path = require('path');
 //middleware
 app.use(express.json());
+app.use(helmet())
+
 
 
 
@@ -17,30 +21,23 @@ console.log("starting mongoose.connect")
 //connecting to db
 mongoose.connect(process.env.DATABASE_URL)
     .then(() => {
-        console.log('Connected to MongoDB');
-
+        writeLog("info","Connected to mongo")
         // Start server only after connection succeeds
         app.listen(PORT, () => {
-            console.log(`Server running on port ${PORT}`);
+            writeLog("info", `Server running on port ${PORT}`)
         });
     })
     .catch(err => {
-        console.error('MongoDB connection error:', err);
+        writeLog("Error", `MongoDB connection error: ${err}`)
     });
 
-//GET Template
-app.get("/api/status",(req, res) =>{
-    res.json({
-        val1: "safa"
-    })
-})
 
 //USER API
 const usrPath ="/api/v1/user"
 
 app.post(`${usrPath}/signup`, async (req, res)=>{
     const {username, password, email} = req.body
-    console.log(`${usrPath}/signup Called`)
+    writeLog("info", `${usrPath}/signup Called`)
     //VALIDATION -----
         //check if all data is provided
     if(!username)  return res.status(400).json({error:"Username not given"})
@@ -62,23 +59,23 @@ app.post(`${usrPath}/signup`, async (req, res)=>{
             username: username,
             password: hashedPassword,
             email: email,
-            createdAt: Date.now(),
-            updatedAt: Date.now()
+            created_at: Date.now(),
+            updated_at: Date.now()
         })
 
-        console.log(`new user created:  '${newUser._id}'`)
+        writeLog("Success",`new user created:  '${newUser._id}'` )
         res.status(201).json({
             message: "New User Created",
             user: newUser
         })
     }
     catch(err){
-        console.log("Error creating user")
-        console.log(err)
+        writeLog("Error", `error creating user ${err}`)
+        res.status(500).json({error: "Internal Server Error"})
     }
 })
 app.post(`${usrPath}/login`, async (req, res)=> {
-    console.log(`${usrPath}/login Called`)
+    writeLog("info", `${usrPath}/login Called`)
     const {username, password, email} = req.body
     if(!password)  return res.status(400).json({error:"Password not given"})
     if(!email && !username)  return res.status(400).json({error:"Email and Password were not given, you must provide one"})
@@ -105,6 +102,7 @@ app.post(`${usrPath}/login`, async (req, res)=> {
         process.env.JWT_SECRET,
         { expiresIn: '1h' } // Token expires in 1 hour
     );
+    writeLog("info", `Login Success`)
     return res.status(200).json({
         message: "Login successful",
         token: token
@@ -152,7 +150,7 @@ const verifyToken = (req, res, next) => {
 const employeePath ="/api/v1/emp"
 
 app.get(`${employeePath}/employees`,verifyToken, async (req, res)=>{
-   console.log(`${employeePath}/employees GET Called`)
+    writeLog("info",`${employeePath}/employees GET Called` )
 
     const emps = await Employee.find({user: req.user.userId})
     if(!emps){
@@ -162,7 +160,7 @@ app.get(`${employeePath}/employees`,verifyToken, async (req, res)=>{
 })
 
 app.post(`${employeePath}/employees`,verifyToken, async (req, res)=>{
-    console.log(`${employeePath}/employees POST Called`)
+    writeLog("info",`${employeePath}/employees POST Called`)
     const {first_name, last_name, email, position, salary, date_of_joining, department} = req.body
 
     if(!first_name)  return res.status(400).json({error:"First name not given"})
@@ -191,15 +189,15 @@ app.post(`${employeePath}/employees`,verifyToken, async (req, res)=>{
         date_of_joining: date_of_joining,
         department: department,
         user: ownerId, //Refer to User
-        createdAt: Date.now(),
-        updatedAt: Date.now()
+        created_at: Date.now(),
+        updated_at: Date.now()
     })
 
-    return res.status(201).json({ emps });
+    return res.status(201).json({ message: "Employee created successfully", employee: newEmployee });
 })
 
 app.get(`${employeePath}/employees/:eid`, verifyToken, async (req, res) => {
-    console.log(`${employeePath}/employees POST Called`)
+    writeLog("info", `${employeePath}/employees POST Called`)
     const {eid} = req.params
 
     if (!eid) {
@@ -215,11 +213,11 @@ app.get(`${employeePath}/employees/:eid`, verifyToken, async (req, res) => {
     console.log(`ID: ${eid}`)
 
 
-    return res.status(201).json(employee);
+    return res.status(200).json(employee);
 })
 
 app.put(`${employeePath}/employees/:eid`, verifyToken, async (req, res) => {
-    console.log(`${employeePath}/employees PUT Called`)
+    writeLog("info", `${employeePath}/employees PUT Called`)
     const {eid} = req.params
 
     if (!eid) {
@@ -236,12 +234,7 @@ app.put(`${employeePath}/employees/:eid`, verifyToken, async (req, res) => {
     if(!department)  return res.status(400).json({error:"Department of joining not given"})
 
     const ownerId = new mongoose.Types.ObjectId(req.user?.userId);
-    console.log(`ID: ${ownerId}`)
-
     const empId = new mongoose.Types.ObjectId(eid);
-
-
-    console.log(`ID: ${eid}`)
 
     await Employee.updateOne(
         // 1. The Filter (Find the document by ID and owner)
@@ -259,10 +252,69 @@ app.put(`${employeePath}/employees/:eid`, verifyToken, async (req, res) => {
                 salary: salary,
                 date_of_joining: date_of_joining,
                 department: department,
-                updatedAt: Date.now() // Only update the timestamp
+                updated_at: Date.now() // Only update the timestamp
             }
         }
     );
 
-    return res.status(201).json({});
+    return res.status(200).json({});
 })
+
+app.delete(`${employeePath}/employees`,  verifyToken, async(req, res)=>{
+    writeLog("info",`${employeePath}/employees?eid DELETE called`)
+    const eid = req.query.eid;
+
+    if (!eid) {
+        return res.status(400).json({ error: "Employee ID (eid) not provided" });
+    }
+
+    try {
+        const result = await Employee.deleteOne({
+            _id: new mongoose.Types.ObjectId(eid),
+            user: req.user.userId // This ensures they only delete their own employee
+        });
+
+        // If deletedCount is 0, the employee didn't exist or belonged to another user
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: "Employee not found or unauthorized" });
+        }
+
+        return res.status(204).end();
+    } catch (err) {
+        writeLog("error",`Error deleting employee: ${err}`)
+        return res.status(500).json({ error: "Internal server error" });
+    }
+})
+app.get("/health", (req, res) => {
+    res.status(200).json({
+        status: "UP",
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+});
+
+// Ensure the 'logs' directory exists
+const logDirectory = path.join(__dirname, 'logs');
+if (!fs.existsSync(logDirectory)) {
+    fs.mkdirSync(logDirectory);
+}
+
+const logFilePath = path.join(logDirectory, 'app.log');
+
+// Helper function to write logs
+const writeLog = (level, message, req = null) => {
+    const timestamp = new Date().toISOString();
+    let logEntry = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
+
+    if (req) {
+        logEntry += ` | Method: ${req.method} | Path: ${req.originalUrl} | IP: ${req.ip}`;
+    }
+
+    logEntry += '\n';
+
+    fs.appendFile(logFilePath, logEntry, (err) => {
+        if (err) console.error("Failed to write to log file:", err);
+    });
+
+    console.log(logEntry.trim());
+};
