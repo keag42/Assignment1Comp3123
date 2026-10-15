@@ -8,7 +8,6 @@ const loginSchema = Joi.object({
 
 const loginValidation = (req, res, next) => {
     const { error } = loginSchema.validate(req.body);
-
     if (error) {
         return res.status(400).json({
             error: error.details[0].message
@@ -37,4 +36,58 @@ const signUpValidation = (req, res, next) => {
 
     next();
 };
-module.exports = { signUpValidation, loginValidation };
+
+const employeeSchema = Joi.object({
+    first_name: Joi.string().required(),
+    last_name: Joi.string().required(),
+    email: Joi.string().email().required(),
+    position: Joi.string().required(),
+    salary: Joi.number().required(),
+    date_of_joining: Joi.date().required(),
+    department: Joi.string().required()
+});
+
+const employeeIdValidation = (req, res, next) => {
+    const schema = Joi.object({
+        eid: Joi.string().hex().length(24).required()
+    });
+
+    const data = req.method === "DELETE" ? req.query : req.params;
+
+    const { error } = schema.validate(data);
+
+    if (error) {
+        return res.status(400).json({
+            error: error.details[0].message
+        });
+    }
+    next();
+};
+
+const employeeValidation = (req, res, next) => {
+    const { error } = employeeSchema.validate(req.body);
+
+    if (error) {
+        return res.status(400).json({
+            error: error.details[0].message
+        });
+    }
+
+    next();
+};
+const deleteEmployeeValidation = (req, res, next) => {
+    const schema = Joi.object({
+        eid: Joi.string().hex().length(24).required()
+    });
+
+    const { error } = schema.validate(req.query);
+
+    if (error) {
+        return res.status(400).json({
+            error: error.details[0].message
+        });
+    }
+
+    next();
+};
+module.exports = { signUpValidation, loginValidation, employeeValidation, employeeIdValidation, deleteEmployeeValidation };
