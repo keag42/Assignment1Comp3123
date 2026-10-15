@@ -217,3 +217,52 @@ app.get(`${employeePath}/employees/:eid`, verifyToken, async (req, res) => {
 
     return res.status(201).json(employee);
 })
+
+app.put(`${employeePath}/employees/:eid`, verifyToken, async (req, res) => {
+    console.log(`${employeePath}/employees PUT Called`)
+    const {eid} = req.params
+
+    if (!eid) {
+        return res.status(401).json({ error: "Unauthorized: Employee ID missing" });
+    }
+    const {first_name, last_name, email, position, salary, date_of_joining, department} = req.body
+
+    if(!first_name)  return res.status(400).json({error:"First name not given"})
+    if(!last_name)  return res.status(400).json({error:"Last name not given"})
+    if(!email)  return res.status(400).json({error:"Email not given"})
+    if(!position)  return res.status(400).json({error:"Position not given"})
+    if(!salary)  return res.status(400).json({error:"Salary not given"})
+    if(!date_of_joining)  return res.status(400).json({error:"Date of joining not given"})
+    if(!department)  return res.status(400).json({error:"Department of joining not given"})
+
+    const ownerId = new mongoose.Types.ObjectId(req.user?.userId);
+    console.log(`ID: ${ownerId}`)
+
+    const empId = new mongoose.Types.ObjectId(eid);
+
+
+    console.log(`ID: ${eid}`)
+
+    await Employee.updateOne(
+        // 1. The Filter (Find the document by ID and owner)
+        {
+            _id: new mongoose.Types.ObjectId(eid),
+            user: ownerId
+        },
+        // 2. The Update (Use $set to specify the fields to update)
+        {
+            $set: {
+                first_name: first_name,
+                last_name: last_name,
+                email: email,
+                position: position,
+                salary: salary,
+                date_of_joining: date_of_joining,
+                department: department,
+                updatedAt: Date.now() // Only update the timestamp
+            }
+        }
+    );
+
+    return res.status(201).json({});
+})
