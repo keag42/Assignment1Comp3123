@@ -98,22 +98,6 @@ app.get("/health", (req, res) => {
 });
 
 
-//TODO REMOVE this is temporary for testing
-app.get(`${usrPath}/getUsers`, async (req, res)=> {
-    try {
-        // Find all documents in the User collection
-        const users = await User.find({});
-
-
-        return res.status(200).json({users});
-
-    } catch (err) {
-        writeLog("error", `User listing failed (${err.name})`, req);
-        return res.status(500).json({ error: "Internal server error" });
-    }
-
-})
-
 
 app.use((err, req, res, next) => {
     const malformedJson = err.type === 'entity.parse.failed';
