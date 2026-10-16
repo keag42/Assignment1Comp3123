@@ -1,4 +1,5 @@
 const Joi = require('joi');
+const {writeLog} = require('./util/logger');
 
 const loginSchema = Joi.object({
     username: Joi.string().min(3).max(30).optional(),
@@ -9,6 +10,7 @@ const loginSchema = Joi.object({
 const loginValidation = (req, res, next) => {
     const { error } = loginSchema.validate(req.body);
     if (error) {
+        writeLog("warn", `Validation failed (${error.details[0].type})`, req);
         return res.status(400).json({
             error: error.details[0].message
         });
@@ -29,6 +31,7 @@ const signUpSchema = Joi.object({
 const signUpValidation = (req, res, next) => {
     const { error } = signUpSchema.validate(req.body);
     if (error) {
+        writeLog("warn", `Validation failed (${error.details[0].type})`, req);
         return res.status(400).json({
             error: error.details[0].message
         });
@@ -57,6 +60,7 @@ const employeeIdValidation = (req, res, next) => {
     const { error } = schema.validate(data);
 
     if (error) {
+        writeLog("warn", `Validation failed (${error.details[0].type})`, req);
         return res.status(400).json({
             error: error.details[0].message
         });
@@ -68,6 +72,7 @@ const employeeValidation = (req, res, next) => {
     const { error } = employeeSchema.validate(req.body);
 
     if (error) {
+        writeLog("warn", `Validation failed (${error.details[0].type})`, req);
         return res.status(400).json({
             error: error.details[0].message
         });
@@ -83,6 +88,7 @@ const deleteEmployeeValidation = (req, res, next) => {
     const { error } = schema.validate(req.query);
 
     if (error) {
+        writeLog("warn", `Validation failed (${error.details[0].type})`, req);
         return res.status(400).json({
             error: error.details[0].message
         });
