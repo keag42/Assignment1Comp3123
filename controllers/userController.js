@@ -5,7 +5,7 @@ const mongoose= require('mongoose');
 const { writeLog } = require('../util/logger.js');
 
 const login = async (req, res) => {
-    writeLog("info", "Login Called");
+    writeLog("info", "Login attempted", req);
 
     const { username, email, password } = req.body;
 
@@ -14,12 +14,14 @@ const login = async (req, res) => {
         const foundUser = await User.findOne(query);
 
         if (!foundUser) {
+            writeLog("warn", "Login rejected: invalid credentials", req);
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
         const passCorrect = await bcrypt.compare(password, foundUser.password);
 
         if (!passCorrect) {
+            writeLog("warn", "Login rejected: invalid credentials", req);
             return res.status(401).json({ error: "Invalid credentials" });
         }
 
@@ -35,7 +37,7 @@ const login = async (req, res) => {
             { expiresIn: '1h' }
         );
 
-        writeLog("info", "Login Success");
+        writeLog("info", "Login successful", req);
 
         return res.status(200).json({
             message: "Login successful",
@@ -43,13 +45,13 @@ const login = async (req, res) => {
         });
 
     } catch (err) {
-        writeLog("Error", `Login failed: ${err}`);
+        writeLog("error", `Login failed (${err.name})`, req);
         return res.status(500).json({ error: "Internal Server Error" });
     }
 };
 const signup = async (req, res) => {
     const { username, password, email } = req.body;
-    writeLog("info", "/api/v1/user/signup Called");
+    writeLog("info", "Signup attempted", req);
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -66,7 +68,7 @@ const signup = async (req, res) => {
             updated_at: Date.now()
         });
 
-        writeLog("Success", `new user created: '${newUser._id}'`);
+        writeLog("info", "User created successfully", req);
 
         return res.status(201).json({
             message: "New User Created",
@@ -80,7 +82,7 @@ const signup = async (req, res) => {
         });
     }
     catch (err) {
-        writeLog("Error", `error creating user ${err}`);
+        writeLog(err.code === 11000 ? "warn" : "error", err.code === 11000 ? "Signup rejected: duplicate username or email" : `Signup failed (${err.name})`, req);
 
         if (err.code === 11000) {
             return res.status(409).json({
