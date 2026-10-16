@@ -6,10 +6,14 @@ const employeePath ="/api/v1/emp"
 const getEmployees = async (req, res)=>{
     writeLog("info", `${employeePath}/employees GET Called`)
 
-    const emps = await Employee.find({user: req.user.userId})
+    const emps = await Employee.find({user: req.user.userId}).catch(err => {
+        writeLog("error", `Employee listing failed (${err.name})`, req);
+        throw err;
+    })
     if (!emps) {
         return res.status(400).json({error: "No Employees"});
     }
+    writeLog("info", `Employees listed successfully | Count: ${emps.length}`, req);
     return res.status(200).json({emps});
 };
 
@@ -24,12 +28,14 @@ const getEmployeeById = async (req, res) => {
         });
 
         if (!employee) {
+            writeLog("warn", "Employee lookup rejected: not found or not owned by authenticated user", req);
             return res.status(404).json({ error: "Employee not found" });
         }
 
+        writeLog("info", "Employee retrieved successfully", req);
         return res.status(200).json({ employee });
     } catch (err) {
-        writeLog("error", `Error fetching employee: ${err}`);
+        writeLog("error", `Employee lookup failed (${err.name})`, req);
         return res.status(500).json({ error: "Internal server error" });
     }
 };
@@ -43,6 +49,7 @@ const createEmployee = async (req, res) => {
     } = req.body;
 
     if (!req.user?.userId) {
+        writeLog("warn", "Employee creation rejected: authenticated user missing", req);
         return res.status(401).json({
             error: "Unauthorized: User information missing"
         });
@@ -50,7 +57,7 @@ const createEmployee = async (req, res) => {
 
     try {
         const ownerId = new mongoose.Types.ObjectId(req.user.userId);
-        console.log(`ID: ${ownerId}`);
+        
 
         // TODO: Check if employee already exists
 
@@ -70,13 +77,14 @@ const createEmployee = async (req, res) => {
             updated_at: Date.now()
         });
 
+        writeLog("info", "Employee created successfully", req);
         return res.status(201).json({
             message: "Employee created successfully",
             employee: newEmployee
         });
 
     } catch (err) {
-        writeLog("Error", `Error creating employee: ${err}`);
+        writeLog("Error", `Employee creation failed (${err.name})`, req);
 
         return res.status(500).json({
             error: "Internal Server Error"
@@ -119,17 +127,19 @@ const updateEmployee = async (req, res) => {
         );
 
         if (result.matchedCount === 0) {
+            writeLog("warn", "Employee update rejected: not found or not owned by authenticated user", req);
             return res.status(404).json({
                 error: "Employee not found"
             });
         }
 
+        writeLog("info", "Employee updated successfully", req);
         return res.status(200).json({
             message: "Employee updated successfully"
         });
 
     } catch (err) {
-        writeLog("Error", `Error updating employee: ${err}`);
+        writeLog("Error", `Employee update failed (${err.name})`, req);
 
         return res.status(500).json({
             error: "Internal Server Error"
@@ -150,15 +160,17 @@ const deleteEmployee = async (req, res) => {
 
         // Employee didn't exist or belonged to another user
         if (result.deletedCount === 0) {
+            writeLog("warn", "Employee deletion rejected: not found or not owned by authenticated user", req);
             return res.status(404).json({
                 error: "Employee not found or unauthorized"
             });
         }
 
+        writeLog("info", "Employee deleted successfully", req);
         return res.status(204).end();
 
     } catch (err) {
-        writeLog("error", `Error deleting employee: ${err}`);
+        writeLog("error", `Employee deletion failed (${err.name})`, req);
 
         return res.status(500).json({
             error: "Internal server error"
