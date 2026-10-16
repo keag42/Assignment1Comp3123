@@ -7,8 +7,6 @@ const helmet = require('helmet');
 //Rate Limiting
 const rateLimiter = require('./util/rateLimiting');
 
-// Data Schemas
-const { User, Employee } = require('./models'); //this adds the models
 
 //VALIDATION
 const {loginValidation, signUpValidation, employeeValidation, employeeIdValidation} = require('./Validation.js')
