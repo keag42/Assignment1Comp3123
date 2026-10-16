@@ -27,7 +27,6 @@ const {deleteEmployee} = require("./controllers/employeeController");
 //Logger
 const {writeLog, requestLogger} = require('./util/logger.js')
 
-const bcrypt = require('bcrypt');
 const app = express();
 const PORT = process.env.PORT
 const jwtSecret =process.env.JWT_SECRET;
@@ -72,7 +71,7 @@ const verifyToken = (req, res, next) => {
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, jwtSecret);
         writeLog("info", "JWT authentication successful", req);
         req.user = decoded; // Attaches { userId, username, ... } to the request
         next(); // User is verified, proceed to the route handler
