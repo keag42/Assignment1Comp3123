@@ -4,6 +4,9 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config(); // Loads the variables
 const helmet = require('helmet');
 
+//Rate Limiting
+const rateLimiter = require('./util/rateLimiting');
+
 // Data Schemas
 const { User, Employee } = require('./models'); //this adds the models
 
@@ -54,8 +57,8 @@ mongoose.connect(process.env.DATABASE_URL)
 
 //USER API
 const usrPath ="/api/v1/user"
-app.post(`${usrPath}/signup`,signUpValidation, signup)
-app.post(`${usrPath}/login`, loginValidation, login);
+app.post(`${usrPath}/signup`, rateLimiter, signUpValidation, signup)
+app.post(`${usrPath}/login`, rateLimiter, loginValidation, login);
 
 
 //verifying token
