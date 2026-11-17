@@ -27,6 +27,7 @@ const EmployeeSchema = new mongoose.Schema({
     salary: {type:Number},
     date_of_joining: {type:Date},
     department: {type:String},
+    profile_picture: {type:String, default: null},
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'

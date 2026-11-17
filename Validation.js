@@ -68,6 +68,21 @@ const employeeIdValidation = (req, res, next) => {
     next();
 };
 
+const employeeSearchSchema = Joi.object({
+    department: Joi.string().trim().min(1).max(100),
+    position: Joi.string().trim().min(1).max(100)
+}).or('department', 'position').unknown(false);
+
+const employeeSearchValidation = (req, res, next) => {
+    const { error, value } = employeeSearchSchema.validate(req.query);
+    if (error) {
+        writeLog("warn", `Validation failed (${error.details[0].type})`, req);
+        return res.status(400).json({ error: error.details[0].message });
+    }
+    req.employeeSearchQuery = value;
+    next();
+};
+
 const employeeValidation = (req, res, next) => {
     const { error } = employeeSchema.validate(req.body);
 
@@ -96,4 +111,4 @@ const deleteEmployeeValidation = (req, res, next) => {
 
     next();
 };
-module.exports = { signUpValidation, loginValidation, employeeValidation, employeeIdValidation, deleteEmployeeValidation };
+module.exports = { signUpValidation, loginValidation, employeeValidation, employeeIdValidation, deleteEmployeeValidation, employeeSearchValidation };
