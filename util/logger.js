@@ -8,6 +8,14 @@ if (!fs.existsSync(logDirectory)) {
 
 const logFilePath = path.join(logDirectory, 'app.log');
 
+const levelColors = {
+    error: '\x1b[31m', // red
+    warn: '\x1b[33m',  // yellow
+    info: '\x1b[34m',  // blue
+    success: '\x1b[32m' // green
+};
+const colorReset = '\x1b[0m';
+
 // Helper function to write logs
 const clean = value => String(value).replace(/[\r\n\t]/g, " ");
 
@@ -25,7 +33,8 @@ const writeLog = (level, message, req = null) => {
         if (err) console.error("Failed to write to log file:", err);
     });
 
-    console.log(logEntry.trim());
+    const color = levelColors[String(level).toLowerCase()];
+    console.log(color ? `${color}${logEntry.trim()}${colorReset}` : logEntry.trim());
 };
 // Register before express.json() so malformed JSON requests are logged too.
 const requestLogger = (req, res, next) => {
