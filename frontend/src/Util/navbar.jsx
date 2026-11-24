@@ -1,8 +1,26 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './navbar.css';
 
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(localStorage.getItem('token')));
+
+    useEffect(() => {
+        const syncAuth = () => setIsLoggedIn(Boolean(localStorage.getItem('token')));
+        window.addEventListener('auth-changed', syncAuth);
+        window.addEventListener('storage', syncAuth);
+        return () => {
+            window.removeEventListener('auth-changed', syncAuth);
+            window.removeEventListener('storage', syncAuth);
+        };
+    }, []);
+
+    const logout = () => {
+        localStorage.removeItem('token');
+        setIsLoggedIn(false);
+        setIsOpen(false);
+        window.location.href = '/login';
+    };
 
     const toggleMenu = () => {
         setIsOpen(!isOpen);
@@ -29,10 +47,12 @@ export default function Navbar() {
 
             {/* Navigation links */}
             <ul className={`navbar-links ${isOpen ? 'active' : ''}`}>
-                <li><a href="/" onClick={() => setIsOpen(false)}>Login/Signup</a></li>
-                <li><a href="/about" onClick={() => setIsOpen(false)}>employees</a></li>
-                <li><a href="/services" onClick={() => setIsOpen(false)}>employee add</a></li>
-                <li><a href="/contact" onClick={() => setIsOpen(false)}>employee viewer</a></li>
+                {!isLoggedIn && <li><a href="/login" onClick={() => setIsOpen(false)}>Login</a></li>}
+                {!isLoggedIn && <li><a href="/" onClick={() => setIsOpen(false)}>Signup</a></li>}
+                {isLoggedIn && <li><a href="/contact" onClick={() => setIsOpen(false)}>Employees</a></li>}
+                {isLoggedIn && <li><a href="/about" onClick={() => setIsOpen(false)}>Search</a></li>}
+                {isLoggedIn && <li><a href="/services" onClick={() => setIsOpen(false)}>Add employee</a></li>}
+                {isLoggedIn && <li><button className="nav-logout" type="button" onClick={logout}>Log out</button></li>}
             </ul>
         </nav>
     );
