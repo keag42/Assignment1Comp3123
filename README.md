@@ -76,14 +76,14 @@ open collection in postman and run
 #### Create Employee
 - **Method:** POST
 - **Endpoint:** `/api/v1/emp/employees`
-- **Description:** Creates a new employee using the supplied JSON body.
+- **Description:** Creates a new employee using JSON or `multipart/form-data`. For multipart requests, send employee fields and an optional `profile_picture` JPEG, PNG, or WebP file (maximum 2 MB).
 - **Authentication:** Required.
 - **Validation:** Request body is checked by `employeeValidation`.
 
 #### Update Employee
 - **Method:** PUT
 - **Endpoint:** `/api/v1/emp/employees/:eid`
-- **Description:** Updates an employee using the supplied JSON body.
+- **Description:** Updates an employee using JSON or `multipart/form-data`. A supplied `profile_picture` replaces the existing picture; omit it to keep the current picture.
 - **Path parameter:** `eid` — Employee ID.
 - **Authentication:** Required.
 - **Validation:** Employee ID and request body are validated.
@@ -118,6 +118,7 @@ upon successful login in you are given a jwt token which you will use as a beare
 helmet is a middleware that helps you set http response headers
 #### Rate Limiting
 I set the rate limit to 20 requests per minute. a good sweet spot between being able to test, and actual functionality.
+Login and signup return `429 Too Many Requests` with a JSON `error` message when the limit is reached. Frontends should check for status 429 and show that message or a retry-later prompt.
 #### Input Validation
 I used JOI to do my input validation. JOI is nice because it says you from having to write a million if statements and its much more readable.
 #### Environment Variables
@@ -134,3 +135,6 @@ Intentionally excluded per guidelines were passwords, and other relevant data.
 ## Health Check
 the  health check url is http://localhost:3000/health
 expected response is  ```200, Status:up, timestamp, how long its been up"
+
+## Profile Pictures and CORS
+Set `CORS_ORIGIN` in `.env` to the exact frontend origin (for example `http://localhost:3000`); wildcard origins are not enabled. Uploaded profile pictures are stored under `uploads/` with generated names and served from `/uploads/<filename>`. Employee responses include `profile_picture`, which is either `null` or that URL path. The file is removed when its employee is deleted or the picture is replaced.
